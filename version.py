@@ -60,6 +60,7 @@ assert parse_git_version(
 
 
 def git_version():
+    return "29.0"
     version = exec(['git', 'describe', '--long', '--candidates=999',
                     '--match=wasi-sdk-*', '--dirty=+m', f'--abbrev={GIT_REF_LEN}'],
                     os.path.dirname(sys.argv[0]))
