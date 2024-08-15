@@ -1,0 +1,181 @@
+default:
+  interruptible: true
+
+variables:
+  DOCKER_REV: 71454506c0c2e215953306b04572092cb89a6c2a
+  GIT_DEPTH: 1
+  GIT_SUBMODULE_DEPTH: 1
+  GIT_SUBMODULE_STRATEGY: normal
+  GZIP: "-9"
+
+.linux:
+  image: alpine:latest
+  before_script:
+    - |
+      apk upgrade
+      apk add \
+        alpine-sdk \
+        autoconf \
+        automake \
+        bash \
+        clang \
+        cmake \
+        curl \
+        gzip \
+        libtool \
+        lld \
+        ninja-is-really-ninja \
+        python3 \
+        xz \
+        zstd
+    - |
+      curl -L https://github.com/tweag/rust-alpine-mimalloc/archive/refs/heads/master.tar.gz | tar xz -C /tmp
+      mv /tmp/rust-alpine-mimalloc-master/mimalloc.diff /tmp
+      /tmp/rust-alpine-mimalloc-master/build.sh
+      export LD_PRELOAD=/usr/lib/libmimalloc.so
+    - |
+      mkdir wasm-tools
+      if [ "$(uname -m)" = "x86_64" ]
+      then
+        curl -L https://github.com/haskell-wasm/wasm-tools-static/releases/download/251121/wasm-tools-251121-x86_64-linux.tar.zst | tar x --zstd -C wasm-tools --strip-components=1
+      else
+        curl -L https://github.com/haskell-wasm/wasm-tools-static/releases/download/251121/wasm-tools-251121-aarch64-linux.tar.zst | tar x --zstd -C wasm-tools --strip-components=1
+      fi
+      export PATH=$PWD/wasm-tools/bin:$PATH
+    - |
+      mkdir binaryen
+      if [ "$(uname -m)" = "x86_64" ]
+      then
+        curl -L https://github.com/haskell-wasm/binaryen/releases/download/version_125/binaryen-version_125-x86_64-linux-static.tar.gz | tar xz -C binaryen --strip-components=1
+      else
+        curl -L https://github.com/haskell-wasm/binaryen/releases/download/version_125/binaryen-version_125-aarch64-linux-static.tar.gz | tar xz -C binaryen --strip-components=1
+      fi
+      export PATH=$PWD/binaryen/bin:$PATH
+  script:
+    - WASI_SDK_CI_TOOLCHAIN_LLVM_CMAKE_ARGS="-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++ -DCMAKE_EXE_LINKER_FLAGS=-Wl,-z,stack-size=8388608 -DLLVM_BUILD_STATIC=ON -DLLVM_ENABLE_LLD=ON -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PIC=OFF -DLLVM_PARALLEL_LINK_JOBS=1" WASM_SO_OPT="--debuginfo --low-memory-unused --strip-dwarf -Oz" ./ci/build.sh
+    - ln -s build/dist dist-unknown
+    - ./ci/merge-artifacts.sh
+    - mkdir /tmp/wasi-sdk
+    - tar xzf dist/wasi-sdk-*.tar.gz -C /tmp/wasi-sdk --strip-components=1
+    - curl -L https://github.com/bitcoin-core/secp256k1/releases/download/v0.7.0/libsecp256k1-0.7.0.tar.gz | tar xz -C /tmp
+    - cd /tmp/libsecp256k1-0.7.0
+    - ./autogen.sh
+    - ./configure CC=/tmp/wasi-sdk/bin/wasm32-wasi-clang --host=wasm32-wasi --enable-module-schnorrsig --enable-examples CPPFLAGS=-D__OpenBSD__
+    - make schnorr_example
+    - wasmtime schnorr_example | grep -F true
+
+  artifacts:
+    expire_in: 1 year
+    paths:
+      - dist/wasi-sdk-*.tar.gz
+
+x86_64-linux:
+  extends: .linux
+  tags:
+    - x86_64-linux
+
+ghc-ci:
+  needs:
+    - job: x86_64-linux
+      artifacts: false
+  variables:
+    GHC_WASM_META_BRANCH: master
+    UPSTREAM_WASI_SDK_PIPELINE_ID: $CI_PIPELINE_ID
+  when: manual
+  parallel:
+    matrix:
+      - GHC_BRANCH:
+          - ghc-9.14
+          - ghc-9.12
+          - ghc-9.10
+  trigger:
+    project: haskell-wasm/ghc
+    branch: $GHC_BRANCH
+
+x86_64-linux-ghc-bindist:
+  image: registry.gitlab.haskell.org/ghc/ci-images/x86_64-linux-alpine3_23:$DOCKER_REV
+  needs:
+    - job: x86_64-linux
+      artifacts: true
+  script:
+    - |
+      curl -L https://gitlab.haskell.org/ghc/ghc-wasm-meta/-/archive/master/ghc-wasm-meta-master.tar.gz | tar xz
+      cd ghc-wasm-meta-*
+      SKIP_GHC=1 ./setup.sh
+      cd ..
+      rm -r ghc-wasm-meta-*
+    - |
+      rm -rf /home/ghc/.ghc-wasm/wasi-sdk
+      mkdir /home/ghc/.ghc-wasm/wasi-sdk
+      tar xzf dist/wasi-sdk-*.tar.gz -C /home/ghc/.ghc-wasm/wasi-sdk --strip-components=1
+    - |
+      curl -L https://github.com/tweag/ghc-wasm-bindists/releases/download/20240930T111148/libffi-wasm -o libffi-wasm.zip
+      unzip libffi-wasm.zip
+      cp -a out/libffi-wasm/include/. /home/ghc/.ghc-wasm/wasi-sdk/share/wasi-sysroot/include/wasm32-wasi
+      cp -a out/libffi-wasm/lib/. /home/ghc/.ghc-wasm/wasi-sdk/share/wasi-sysroot/lib/wasm32-wasi
+    - |
+      mkdir /tmp/ghc-bindist
+      curl -L https://github.com/tweag/ghc-wasm-bindists/releases/download/20230619T174420/wasm32-wasi-ghc-unreg.tar.xz | tar xJ -C /tmp/ghc-bindist --strip-components=1
+      cd /tmp/ghc-bindist
+      source "/home/ghc/.ghc-wasm/env"
+      ./configure $CONFIGURE_ARGS --prefix=/tmp/ghc
+      make install
+    - |
+      mkdir /tmp/ghc-bindist-test
+      cd /tmp/ghc-bindist-test
+      curl -L https://gitlab.haskell.org/ghc/ghc/-/raw/89bb8ad8b5fa56b83fe80dd6d7147ad81ae4e74d/.gitlab/hello.hs -o hello.hs
+      /tmp/ghc/bin/wasm32-wasi-ghc -package ghc -rtsopts hello.hs -o hello.wasm
+      wasmtime run hello.wasm | grep -F 'main = putStrLn "hello world"'
+  tags:
+    - x86_64-linux
+  variables:
+    GIT_STRATEGY: none
+    GIT_SUBMODULE_STRATEGY: none
+
+aarch64-linux:
+  extends: .linux
+  tags:
+    - aarch64-linux
+  needs:
+    - job: aarch64-darwin
+      artifacts: false
+    - job: x86_64-darwin
+      artifacts: false
+
+.darwin:
+  variables:
+    MACOSX_DEPLOYMENT_TARGET: "11.0"
+  before_script:
+    - sw_vers
+    - xcrun --show-sdk-path
+    - xcrun --show-sdk-version
+    - |
+      mkdir wasm-tools
+      curl -L https://github.com/haskell-wasm/wasm-tools-static/releases/download/251121/wasm-tools-251121-darwin-aarch64.tar.zst | tar x --zstd -C wasm-tools --strip-components=1
+      export PATH=$PWD/wasm-tools/bin:$PATH
+    - |
+      mkdir binaryen
+      curl -L https://github.com/WebAssembly/binaryen/releases/download/version_125/binaryen-version_125-arm64-macos.tar.gz | tar xz -C binaryen --strip-components=1
+      export PATH=$PWD/binaryen/bin:$PATH
+  script:
+    - WASM_SO_OPT="--debuginfo --low-memory-unused --strip-dwarf -Oz" ./ci/build.sh
+    - ln -s build/dist dist-unknown
+    - ./ci/merge-artifacts.sh
+  artifacts:
+    expire_in: 1 year
+    paths:
+      - dist/wasi-sdk-*.tar.gz
+
+aarch64-darwin:
+  extends: .darwin
+  tags:
+    - aarch64-darwin
+  variables:
+    WASI_SDK_CI_TOOLCHAIN_LLVM_CMAKE_ARGS: -DCMAKE_OSX_ARCHITECTURES=arm64 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PIC=OFF -DLLVM_PARALLEL_LINK_JOBS=1
+
+x86_64-darwin:
+  extends: .darwin
+  tags:
+    - x86_64-darwin-m1
+  variables:
+    WASI_SDK_CI_TOOLCHAIN_LLVM_CMAKE_ARGS: -DCMAKE_OSX_ARCHITECTURES=x86_64 -DLLVM_ENABLE_LTO=Thin -DLLVM_ENABLE_PIC=OFF -DLLVM_PARALLEL_LINK_JOBS=1
