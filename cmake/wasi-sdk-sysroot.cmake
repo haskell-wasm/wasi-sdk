@@ -2,7 +2,7 @@
 # wasi-libc, libcxx, and libcxxabi.
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE RelWithDebInfo)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 if(NOT CMAKE_C_COMPILER_ID MATCHES Clang)
