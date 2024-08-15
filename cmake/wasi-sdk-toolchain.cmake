@@ -40,6 +40,8 @@ set(tools
   clang-tidy
   clang-apply-replacements
   lld
+  llc
+  opt
   llvm-mc
   llvm-ranlib
   llvm-strip
