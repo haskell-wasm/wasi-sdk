@@ -69,8 +69,7 @@ set(tools
 # these dynamic libraries from clashing with other system libraries in case the
 # `lib` dir gets put on `LD_LIBRARY_PATH` or similar.
 if(NOT WIN32)
-  list(APPEND default_cmake_args -DLLVM_LINK_LLVM_DYLIB=ON -DLLVM_VERSION_SUFFIX=-wasi-sdk)
-  list(APPEND tools LLVM clang-cpp)
+  list(APPEND default_cmake_args -DLLVM_VERSION_SUFFIX=-wasi-sdk)
 endif()
 
 list(TRANSFORM tools PREPEND --target= OUTPUT_VARIABLE build_targets)
