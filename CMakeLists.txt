@@ -18,8 +18,6 @@ option(WASI_SDK_BUILD_TOOLCHAIN "Build a toolchain instead of the sysroot" OFF)
 set(llvm_proj_dir ${CMAKE_CURRENT_SOURCE_DIR}/src/llvm-project)
 set(wasi_libc ${CMAKE_CURRENT_SOURCE_DIR}/src/wasi-libc)
 
-include(wasi-sdk-enable-ccache)
-
 find_program(PYTHON python3 python REQUIRED)
 
 # Set some variables based on the `version.py` script
