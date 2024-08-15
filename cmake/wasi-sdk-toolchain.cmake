@@ -10,7 +10,7 @@ string(REGEX REPLACE "[ ]+" ";" llvm_cmake_flags_list "${LLVM_CMAKE_FLAGS}")
 set(wasi_tmp_install ${CMAKE_CURRENT_BINARY_DIR}/install)
 
 if(NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE MinSizeRel)
+  set(CMAKE_BUILD_TYPE Release)
 endif()
 
 set(default_cmake_args
