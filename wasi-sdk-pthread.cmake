@@ -4,8 +4,8 @@ set(CMAKE_SYSTEM_NAME WASI)
 set(CMAKE_SYSTEM_VERSION 1)
 set(CMAKE_SYSTEM_PROCESSOR wasm32)
 set(triple wasm32-wasi-threads)
-set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread")
+set(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -pthread -mcpu=lime1 -mreference-types -msimd128")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pthread -fno-exceptions -mcpu=lime1 -mreference-types -msimd128")
 # wasi-threads requires --import-memory.
 # wasi requires --export-memory.
 # (--export-memory is implicit unless --import-memory is given)
