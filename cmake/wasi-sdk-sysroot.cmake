@@ -250,9 +250,9 @@ function(define_libcxx_sub target target_suffix extra_target_flags extra_libdir_
     --sysroot ${wasi_sysroot}
     -resource-dir ${wasi_resource_dir})
 
-  set(extra_cflags_list ${CMAKE_C_FLAGS} ${extra_flags})
+  set(extra_cflags_list ${CMAKE_C_FLAGS} ${extra_flags} -Wno-unused-command-line-argument -Wl,--Bsymbolic,--keep-section=target_features,--strip-all)
   list(JOIN extra_cflags_list " " extra_cflags)
-  set(extra_cxxflags_list ${CMAKE_CXX_FLAGS} ${extra_flags})
+  set(extra_cxxflags_list ${CMAKE_CXX_FLAGS} ${extra_flags} -Wno-unused-command-line-argument -Wl,--Bsymbolic,--keep-section=target_features,--strip-all)
   list(JOIN extra_cxxflags_list " " extra_cxxflags)
 
   ExternalProject_Add(libcxx-${target}${target_suffix}-build
