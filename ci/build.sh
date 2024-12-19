@@ -38,7 +38,7 @@ cmake -G Ninja -B $build_dir/sysroot -S . \
   -DCMAKE_CXX_COMPILER_WORKS=ON \
   -DWASI_SDK_INCLUDE_TESTS=ON \
   "-DCMAKE_INSTALL_PREFIX=$build_dir/install"
-ninja -C $build_dir/sysroot install dist -v
+WASM_SO_OPT="--low-memory-unused --converge --strip-dwarf --gufa -O4 -Oz" ninja -C $build_dir/sysroot install dist -v
 
 mv $build_dir/sysroot/dist/* $build_dir/dist
 
