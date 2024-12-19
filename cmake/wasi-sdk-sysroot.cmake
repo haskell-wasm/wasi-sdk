@@ -23,7 +23,7 @@ find_program(MAKE make REQUIRED)
 option(WASI_SDK_DEBUG_PREFIX_MAP "Pass `-fdebug-prefix-map` for built artifacts" ON)
 option(WASI_SDK_INCLUDE_TESTS "Whether or not to build tests by default" OFF)
 option(WASI_SDK_INSTALL_TO_CLANG_RESOURCE_DIR "Whether or not to modify the compiler's resource directory" OFF)
-option(WASI_SDK_LTO "Whether or not to build LTO assets" ON)
+option(WASI_SDK_LTO "Whether or not to build LTO assets" OFF)
 
 set(wasi_tmp_install ${CMAKE_CURRENT_BINARY_DIR}/install)
 set(wasi_sysroot ${wasi_tmp_install}/share/wasi-sysroot)
