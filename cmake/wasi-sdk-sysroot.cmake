@@ -143,7 +143,7 @@ function(define_wasi_libc_sub target target_suffix lto)
   get_property(directory_cflags DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY COMPILE_OPTIONS)
   list(APPEND directory_cflags -resource-dir ${wasi_resource_dir})
   set(extra_cflags_list
-    "${WASI_SDK_CPU_CFLAGS} ${CMAKE_C_FLAGS} ${directory_cflags} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UPPER}}")
+    "${WASI_SDK_CPU_CFLAGS} ${CMAKE_C_FLAGS} ${directory_cflags} ${CMAKE_C_FLAGS_${CMAKE_BUILD_TYPE_UPPER}} -D__wasilibc_simd_string")
 
   set(extra_make_flags default)
 
