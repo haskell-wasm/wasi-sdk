@@ -190,6 +190,7 @@ function(define_wasi_libc_sub target target_suffix lto)
         EXTRA_CFLAGS=${extra_cflags}
         TARGET_TRIPLE=${target}
         BUILTINS_LIB=${libcompiler_rt_a}
+        CHECK_SYMBOLS=yes
         ${extra_make_flags}
     INSTALL_COMMAND ""
     DEPENDS compiler-rt
