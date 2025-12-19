@@ -22,7 +22,7 @@ cmake -G Ninja -B $build_dir/toolchain -S . \
   "-DCMAKE_INSTALL_PREFIX=$build_dir/install" \
   $WASI_SDK_CI_TOOLCHAIN_CMAKE_ARGS \
   "-DLLVM_CMAKE_FLAGS=$WASI_SDK_CI_TOOLCHAIN_LLVM_CMAKE_ARGS"
-ninja -C $build_dir/toolchain install dist -v
+ninja -C $build_dir/toolchain install dist -v -j$CPUS
 
 mv $build_dir/toolchain/dist $build_dir/dist
 
@@ -38,7 +38,7 @@ cmake -G Ninja -B $build_dir/sysroot -S . \
   -DCMAKE_CXX_COMPILER_WORKS=ON \
   -DWASI_SDK_INCLUDE_TESTS=ON \
   "-DCMAKE_INSTALL_PREFIX=$build_dir/install"
-ninja -C $build_dir/sysroot install dist -v
+ninja -C $build_dir/sysroot install dist -v -j$CPUS
 
 mv $build_dir/sysroot/dist/* $build_dir/dist
 

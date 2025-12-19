@@ -182,7 +182,7 @@ function(define_wasi_libc_sub target target_suffix lto)
     SOURCE_DIR "${build_dir}"
     CONFIGURE_COMMAND ""
     BUILD_COMMAND
-      ${MAKE} -j8 -C ${build_dir}
+      ${MAKE} -j$ENV{CPUS} -C ${build_dir}
         CC=${CMAKE_C_COMPILER}
         AR=${CMAKE_AR}
         NM=${CMAKE_NM}

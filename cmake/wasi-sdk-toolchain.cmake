@@ -100,9 +100,9 @@ ExternalProject_Add(llvm-build
     -DLLVM_ENABLE_PROJECTS:STRING=${projects}
     -DCLANG_LINKS_TO_CREATE:STRING=${links_to_create}
   BUILD_COMMAND
-    cmake --build . ${build_targets}
+    cmake --build . ${build_targets} -- -j$ENV{CPUS}
   INSTALL_COMMAND
-    cmake --build . ${install_targets}
+    cmake --build . ${install_targets} -- -j$ENV{CPUS}
   USES_TERMINAL_CONFIGURE ON
   USES_TERMINAL_BUILD ON
   USES_TERMINAL_INSTALL ON
